@@ -1,12 +1,6 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable jsx-a11y/control-has-associated-label */
-import React, {
-  ChangeEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { UserWarning } from './UserWarning';
 import {
   createTodo,
@@ -27,13 +21,10 @@ export const App: React.FC = () => {
   //#region states
 
   const todoField = useRef<HTMLInputElement>(null);
-  const editField = useRef<HTMLInputElement>(null);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
   const [isChanging, setIsChanging] = useState<Set<number>>(new Set());
   const [query, setQuery] = useState('');
-  const [value, setValue] = useState('');
-  const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
 
   const [errorMessage, setErrorMessage] = useState('');
   const [isErrorVisible, setIsErrorVisible] = useState(false);
@@ -48,10 +39,6 @@ export const App: React.FC = () => {
     .filter(todo => todo.completed)
     .map(comleteTodo => comleteTodo.id);
 
-  const inputFocus = () => {
-    todoField.current?.focus();
-  };
-
   const isHeaderButtonActive = todos.every(todo => todo.completed);
   const isFooterButtonDisabled = !todos.some(todo => todo.completed === true);
   const isToggleButtonVisible = todos.length !== 0;
@@ -60,8 +47,6 @@ export const App: React.FC = () => {
 
   //#region effects
   useEffect(() => {
-    inputFocus();
-
     getTodos()
       .then(result => {
         setTodos(result);
@@ -72,18 +57,8 @@ export const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedTodo) {
-      setValue('');
-
-      return;
-    } else {
-      setValue(selectedTodo.title);
-      editField.current?.focus();
-    }
-  }, [selectedTodo]);
-  //#endregion
-
-  //#region error
+    todoField.current?.focus();
+  }, [todos, errorMessage]);
 
   useEffect(() => {
     if (!errorMessage) {
@@ -99,21 +74,12 @@ export const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [errorMessage]);
 
+  //#endregion
+
+  //#region error
   const handleErrorClose = () => {
     setIsErrorVisible(false);
     setErrorMessage('');
-  };
-  //#endregion
-
-  //#region handels
-
-  //#region inputChanges
-  const handleQueryChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setQuery(e.target.value);
-  };
-
-  const handleValueChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setValue(e.target.value);
   };
   //#endregion
 
@@ -151,7 +117,6 @@ export const App: React.FC = () => {
       .finally(() => {
         setTempTodo(null);
         todoField.current!.disabled = false;
-        inputFocus();
       });
   };
 
@@ -160,29 +125,23 @@ export const App: React.FC = () => {
   };
 
   //#region toggle
-  const handleToggle = (currentTodo: Todo) => {
+  const handleToggle = (todoId: number) => {
     setIsChanging(currSet => {
       const newSet = new Set(currSet);
 
-      newSet.add(currentTodo.id);
+      newSet.add(todoId);
 
       return newSet;
     });
 
-    const updatedTodo = {
-      ...currentTodo,
-      completed: !currentTodo.completed,
-    };
+    const currentTodo = todos.find(todo => todo.id === todoId);
 
-    return updateTodo(updatedTodo)
+    return updateTodo(todoId, { completed: !currentTodo?.completed })
       .then(todo => {
-        setTodos(currTodos => {
-          const newTodos = [...currTodos];
-          const index = newTodos.findIndex(t => t.id === currentTodo.id);
-
-          newTodos.splice(index, 1, todo);
-
-          return newTodos;
+        setTodos(prevTodos => {
+          return prevTodos.map(prevTodo =>
+            prevTodo.id === todo.id ? todo : prevTodo,
+          );
         });
       })
       .catch(() => {
@@ -192,61 +151,49 @@ export const App: React.FC = () => {
         setIsChanging(currSet => {
           const newSet = new Set(currSet);
 
-          newSet.delete(currentTodo.id);
+          newSet.delete(todoId);
 
           return newSet;
         });
-        inputFocus();
       });
   };
 
   const handleToggleAll = () => {
-    setIsChanging(currSet => {
-      const newSet = new Set(currSet);
-
-      todos.forEach(todo => newSet.add(todo.id));
-
-      return newSet;
-    });
-
     const shouldComplete = todos.some(todo => !todo.completed);
 
     const todosToUpdate = todos.filter(
       todo => todo.completed !== shouldComplete,
     );
 
-    const completedPromises = todosToUpdate.map(todo => handleToggle(todo));
-
-    Promise.allSettled(completedPromises).then(results => {
-      inputFocus();
-      const failedIds = completedPromises.filter((id, i) => {
-        return results[i].status === 'rejected';
-      });
-      const successIds = completedPromises.filter((id, i) => {
-        return results[i].status === 'fulfilled';
-      });
-
-      if (successIds.length > 0) {
-        setTodos(currTodos =>
-          currTodos.map(todo =>
-            successIds.includes(todo.id)
-              ? { ...todo, completed: !todo.completed }
-              : todo,
-          ),
-        );
-      }
-
-      if (failedIds.length > 0) {
-        setErrorMessage(ErrorField.updateError);
-      }
-
+    todosToUpdate.forEach(todo => {
       setIsChanging(currSet => {
         const newSet = new Set(currSet);
 
-        todos.forEach(todo => newSet.delete(todo.id));
+        todos.forEach(t => newSet.add(t.id));
 
         return newSet;
       });
+
+      return updateTodo(todo.id, { completed: shouldComplete })
+        .then(updatedTodo => {
+          setTodos(currTodos => {
+            return currTodos.map(currTodo =>
+              currTodo.id === updatedTodo.id ? updatedTodo : currTodo,
+            );
+          });
+        })
+        .catch(() => {
+          setErrorMessage(ErrorField.updateError);
+        })
+        .finally(() => {
+          setIsChanging(currSet => {
+            const newSet = new Set(currSet);
+
+            todos.forEach(t => newSet.delete(t.id));
+
+            return newSet;
+          });
+        });
     });
   };
   //#endregion
@@ -267,8 +214,9 @@ export const App: React.FC = () => {
           currentTodos.filter(todo => todo.id !== todoId),
         );
       })
-      .catch(() => {
+      .catch(error => {
         setErrorMessage(ErrorField.deleteError);
+        throw error;
       })
       .finally(() => {
         setIsChanging(currSet => {
@@ -278,7 +226,6 @@ export const App: React.FC = () => {
 
           return newSet;
         });
-        inputFocus();
       });
   };
 
@@ -294,7 +241,6 @@ export const App: React.FC = () => {
     const deletePromises = completedTodosId.map(id => deleteTodo(id));
 
     Promise.allSettled(deletePromises).then(results => {
-      inputFocus();
       const successId = completedTodosId.filter((id, i) => {
         return results[i].status === 'fulfilled';
       });
@@ -323,72 +269,53 @@ export const App: React.FC = () => {
   };
   //#endregion
 
-  const handleOpenEditForm = (todo: Todo) => {
-    setSelectedTodo(todo);
-  };
+  //#region edit
+  const handleUpdate = (todoId: number, newTitle: string) => {
+    const currentTodo = todos.find(todo => todo.id === todoId);
 
-  const handleEditSubmit = (
-    event: React.FormEvent<HTMLFormElement>,
-  ): Promise<void> | void => {
-    event.preventDefault();
+    if (!currentTodo) {
+      return Promise.resolve();
+    }
 
-    if (selectedTodo) {
-      if (value.trim() === '') {
-        return handleDelete(selectedTodo.id);
-      }
+    const trimmedTitle = newTitle.trim();
 
-      if (value.trim() === selectedTodo.title) {
-        setSelectedTodo(null);
+    if (trimmedTitle === currentTodo.title) {
+      return Promise.resolve();
+    }
 
-        return;
-      }
+    if (!trimmedTitle) {
+      return handleDelete(todoId);
+    }
 
-      setIsChanging(currSet => {
-        const newSet = new Set(currSet);
+    setIsChanging(currSet => {
+      const newSet = new Set(currSet);
 
-        newSet.add(selectedTodo.id);
+      newSet.add(todoId);
 
-        return newSet;
-      });
+      return newSet;
+    });
 
-      const updatedTodo = {
-        ...selectedTodo,
-        title: value.trim(),
-      };
+    return updateTodo(todoId, { title: trimmedTitle })
+      .then(updatedTodo => {
+        setTodos(prevTodos =>
+          prevTodos.map(prevTodo =>
+            prevTodo.id === todoId ? updatedTodo : prevTodo,
+          ),
+        );
+      })
+      .catch(err => {
+        setErrorMessage(ErrorField.updateError);
+        throw err;
+      })
+      .finally(() => {
+        setIsChanging(currSet => {
+          const newSet = new Set(currSet);
 
-      return updateTodo(updatedTodo)
-        .then(todo => {
-          console.log('updated todo', todo);
+          newSet.delete(todoId);
 
-          setTodos(prevTodos => {
-            return prevTodos.map(prevTodo =>
-              prevTodo.id === todo.id ? todo : prevTodo,
-            );
-          });
-
-          setSelectedTodo(null);
-        })
-        .catch(() => {
-          setErrorMessage(ErrorField.updateError);
-          editField.current?.focus();
-          setValue(selectedTodo.title);
-        })
-        .finally(() => {
-          setIsChanging(currSet => {
-            const newSet = new Set(currSet);
-
-            newSet.delete(selectedTodo.id);
-
-            return newSet;
-          });
+          return newSet;
         });
-    }
-  };
-
-  const handleCanselEdit = (event: React.KeyboardEvent<HTMLFormElement>) => {
-    if (event.key === 'Escape') {
-      setSelectedTodo(null);
-    }
+      });
   };
   // #endregion
 
@@ -422,22 +349,16 @@ export const App: React.FC = () => {
           isVisible={isToggleButtonVisible}
           onToggleAll={handleToggleAll}
           onSubmit={handleSubmit}
-          onQueryChange={handleQueryChange}
+          setQuery={setQuery}
         />
 
         <TodoList
           todos={visibleTodos}
           tempTodo={tempTodo}
-          value={value}
-          editField={editField}
-          selectedTodo={selectedTodo}
           isChanging={isChanging}
           onDelete={handleDelete}
-          onToggle={handleToggle}
-          onValueChange={handleValueChange}
-          onDoubleClick={handleOpenEditForm}
-          onSubmit={handleEditSubmit}
-          onKeyDown={handleCanselEdit}
+          onToogle={handleToggle}
+          onUpdate={handleUpdate}
         />
 
         {todos.length > 0 && (

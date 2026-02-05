@@ -1,0 +1,167 @@
+import React, { useEffect } from 'react';
+import { Todo } from '../../types/Todo';
+
+type Props = {
+  todo: Todo;
+  onToogle: (todoId: number) => Promise<void>;
+  onDelete: (todoId: number) => void;
+  onUpdate: (todoId: number, newTitle: string) => Promise<void>;
+  isChanging: Set<number>;
+};
+
+export const TodoItem: React.FC<Props> = ({
+  todo,
+  onToogle,
+  onDelete,
+  onUpdate,
+  isChanging,
+}) => {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const submittedRef = React.useRef<boolean>(false);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editedTitle, setEditedTitle] = React.useState(todo.title);
+
+  useEffect(() => {
+    setEditedTitle(todo.title);
+  }, [todo.title]);
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+    } else {
+      submittedRef.current = false;
+    }
+  }, [isEditing]);
+
+  const startEditing = () => {
+    setIsEditing(true);
+  };
+
+  const finishEditing = () => {
+    setEditedTitle(todo.title);
+    setIsEditing(false);
+  };
+
+  const submitEdit = async () => {
+    if (submittedRef.current) {
+      return;
+    }
+
+    submittedRef.current = true;
+
+    const trimmed = editedTitle.trim();
+
+    if (!trimmed) {
+      try {
+        await onDelete(todo.id);
+        setIsEditing(false);
+      } catch (error) {
+        submittedRef.current = false;
+        inputRef.current?.focus();
+
+        return;
+      }
+    }
+
+    if (trimmed === todo.title) {
+      submittedRef.current = false;
+      finishEditing();
+
+      return;
+    }
+
+    try {
+      await onUpdate(todo.id, trimmed);
+      setIsEditing(false);
+      submittedRef.current = true;
+    } catch (error) {
+      submittedRef.current = false;
+      inputRef.current?.focus();
+    }
+  };
+
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      finishEditing();
+    }
+
+    if (e.key === 'Enter') {
+      submitEdit();
+    }
+  };
+
+  return (
+    <div
+      data-cy="Todo"
+      className={`todo ${todo.completed ? 'completed' : ''}`}
+      key={todo.id}
+    >
+      {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+      <label className="todo__status-label">
+        <input
+          data-cy="TodoStatus"
+          type="checkbox"
+          className="todo__status"
+          checked={todo.completed}
+          onChange={() => onToogle(todo.id)}
+        />
+      </label>
+
+      {!isEditing ? (
+        <>
+          <span
+            data-cy="TodoTitle"
+            className="todo__title"
+            onDoubleClick={startEditing}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                startEditing();
+              }
+            }}
+          >
+            {todo.title}
+          </span>
+
+          <button
+            type="button"
+            className="todo__remove"
+            data-cy="TodoDelete"
+            onClick={() => onDelete(todo.id)}
+          >
+            ×
+          </button>
+        </>
+      ) : (
+        <form
+          onSubmit={event => {
+            event.preventDefault();
+            submitEdit();
+          }}
+        >
+          <input
+            ref={inputRef}
+            data-cy="TodoTitleField"
+            type="text"
+            className="todo__title-field"
+            placeholder="Empty todo will be deleted"
+            value={editedTitle}
+            onChange={event => setEditedTitle(event.target.value)}
+            onBlur={() => {
+              if (!submittedRef.current) {
+                submitEdit();
+              }
+            }}
+            onKeyUp={handleKeyUp}
+          />
+        </form>
+      )}
+      <div
+        data-cy="TodoLoader"
+        className={`modal overlay ${isChanging.has(todo.id) ? 'is-active' : ''}`}
+      >
+        <div className="modal-background has-background-white-ter" />
+        <div className="loader" />
+      </div>
+    </div>
+  );
+};

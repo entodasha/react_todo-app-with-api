@@ -1,4 +1,4 @@
-import { ChangeEvent, LegacyRef } from 'react';
+import { LegacyRef } from 'react';
 
 type Props = {
   todoField?: LegacyRef<HTMLInputElement>;
@@ -7,7 +7,7 @@ type Props = {
   isVisible: boolean;
   onToggleAll: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
-  onQueryChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  setQuery: (e: string) => void;
 };
 
 export const AddBar: React.FC<Props> = ({
@@ -17,7 +17,7 @@ export const AddBar: React.FC<Props> = ({
   isVisible,
   onSubmit,
   onToggleAll,
-  onQueryChange,
+  setQuery,
 }) => {
   return (
     <header className="todoapp__header">
@@ -38,7 +38,7 @@ export const AddBar: React.FC<Props> = ({
           className="todoapp__new-todo"
           placeholder="What needs to be done?"
           value={query}
-          onChange={onQueryChange}
+          onChange={e => setQuery(e.target.value)}
         />
       </form>
     </header>
