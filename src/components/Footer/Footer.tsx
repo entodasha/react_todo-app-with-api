@@ -1,18 +1,21 @@
 import React from 'react';
 import { Filter } from '../Filter/Filter';
 import { SortType } from '../../types/sortField';
+import { FilterItem } from '../../types/filterItem';
 
 type Props = {
   count: number;
-  onDelete: () => void;
   isDisabled: boolean;
   sortField: SortType;
+  filterItems: FilterItem[];
+  onDelete: () => void;
   onFilter: (field: SortType) => void;
 };
 
 export const Footer: React.FC<Props> = ({
   count,
   sortField,
+  filterItems,
   isDisabled,
   onDelete,
   onFilter,
@@ -23,7 +26,11 @@ export const Footer: React.FC<Props> = ({
         {count} items left
       </span>
 
-      <Filter sortField={sortField} onFilter={onFilter} />
+      <Filter
+        sortField={sortField}
+        filterItems={filterItems}
+        onFilter={onFilter}
+      />
 
       <button
         type="button"

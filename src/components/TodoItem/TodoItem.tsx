@@ -42,7 +42,15 @@ export const TodoItem: React.FC<Props> = ({
     setIsEditing(false);
   };
 
-  const submitEdit = async () => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLSpanElement>) => {
+    if (e.key === 'Enter') {
+      startEditing();
+    }
+  };
+
+  const submitEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
     if (submittedRef.current) {
       return;
     }
@@ -80,13 +88,23 @@ export const TodoItem: React.FC<Props> = ({
     }
   };
 
+  const handleBlur = () => {
+    if (!submittedRef.current) {
+      submitEdit(
+        new Event('submit') as unknown as React.FormEvent<HTMLFormElement>,
+      );
+    }
+  };
+
   const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Escape') {
       finishEditing();
     }
 
     if (e.key === 'Enter') {
-      submitEdit();
+      submitEdit(
+        new Event('submit') as unknown as React.FormEvent<HTMLFormElement>,
+      );
     }
   };
 
@@ -113,11 +131,7 @@ export const TodoItem: React.FC<Props> = ({
             data-cy="TodoTitle"
             className="todo__title"
             onDoubleClick={startEditing}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                startEditing();
-              }
-            }}
+            onKeyDown={handleKeyDown}
           >
             {todo.title}
           </span>
@@ -132,12 +146,7 @@ export const TodoItem: React.FC<Props> = ({
           </button>
         </>
       ) : (
-        <form
-          onSubmit={event => {
-            event.preventDefault();
-            submitEdit();
-          }}
-        >
+        <form onSubmit={submitEdit}>
           <input
             ref={inputRef}
             data-cy="TodoTitleField"
@@ -146,11 +155,7 @@ export const TodoItem: React.FC<Props> = ({
             placeholder="Empty todo will be deleted"
             value={editedTitle}
             onChange={event => setEditedTitle(event.target.value)}
-            onBlur={() => {
-              if (!submittedRef.current) {
-                submitEdit();
-              }
-            }}
+            onBlur={handleBlur}
             onKeyUp={handleKeyUp}
           />
         </form>

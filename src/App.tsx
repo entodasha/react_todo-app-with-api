@@ -16,6 +16,7 @@ import { AddBar } from './components/AddBar/AddBar';
 import { TodoList } from './components/TodoList/TodoList';
 import { Footer } from './components/Footer/Footer';
 import { ErrorNotification } from './components/ErrorMessage/ErrorNotification';
+import { filterItems } from './utils/filterItems';
 
 export const App: React.FC = () => {
   //#region states
@@ -365,8 +366,9 @@ export const App: React.FC = () => {
           <Footer
             count={completedCount}
             isDisabled={isFooterButtonDisabled}
-            onDelete={handleDeleteCompetedTodos}
             sortField={sortField}
+            filterItems={filterItems}
+            onDelete={handleDeleteCompetedTodos}
             onFilter={handleFilter}
           />
         )}
