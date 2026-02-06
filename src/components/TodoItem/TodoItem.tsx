@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Todo } from '../../types/Todo';
+import cn from 'classnames';
 
 type Props = {
   todo: Todo;
@@ -109,11 +110,7 @@ export const TodoItem: React.FC<Props> = ({
   };
 
   return (
-    <div
-      data-cy="Todo"
-      className={`todo ${todo.completed ? 'completed' : ''}`}
-      key={todo.id}
-    >
+    <div data-cy="Todo" className={cn('todo', { completed: todo.completed })}>
       {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
       <label className="todo__status-label">
         <input
@@ -162,7 +159,9 @@ export const TodoItem: React.FC<Props> = ({
       )}
       <div
         data-cy="TodoLoader"
-        className={`modal overlay ${isChanging.has(todo.id) ? 'is-active' : ''}`}
+        className={cn('modal overlay', {
+          'is-active': isChanging.has(todo.id),
+        })}
       >
         <div className="modal-background has-background-white-ter" />
         <div className="loader" />

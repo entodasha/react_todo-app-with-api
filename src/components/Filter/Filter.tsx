@@ -1,6 +1,7 @@
 import React from 'react';
 import { SortType } from '../../types/sortField';
 import { FilterItem } from '../../types/filterItem';
+import cn from 'classnames';
 
 type Props = {
   sortField: SortType;
@@ -19,7 +20,9 @@ export const Filter: React.FC<Props> = ({
         <a
           key={filterItem.field}
           href={`#/${filterItem.field === SortType.default ? '' : filterItem.field}`}
-          className={`filter__link ${sortField === filterItem.field ? 'selected' : ''}`}
+          className={cn('filter__link', {
+            selected: sortField === filterItem.field,
+          })}
           data-cy={filterItem.dataCy}
           onClick={() => onFilter(filterItem.field)}
         >

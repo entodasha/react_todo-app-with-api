@@ -1,4 +1,5 @@
-import { LegacyRef } from 'react';
+import React, { LegacyRef } from 'react';
+import cn from 'classnames';
 
 type Props = {
   todoField?: LegacyRef<HTMLInputElement>;
@@ -24,7 +25,7 @@ export const AddBar: React.FC<Props> = ({
       {isVisible && (
         <button
           type="button"
-          className={`todoapp__toggle-all ${isActive ? 'active' : ''}`}
+          className={cn(`todoapp__toggle-all`, { active: isActive })}
           data-cy="ToggleAllButton"
           onClick={onToggleAll}
         />
