@@ -49,8 +49,8 @@ export const TodoItem: React.FC<Props> = ({
     }
   };
 
-  const submitEdit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const submitEdit = async (e?: React.FormEvent<HTMLFormElement>) => {
+    e?.preventDefault();
 
     if (submittedRef.current) {
       return;
@@ -91,9 +91,7 @@ export const TodoItem: React.FC<Props> = ({
 
   const handleBlur = () => {
     if (!submittedRef.current) {
-      submitEdit(
-        new Event('submit') as unknown as React.FormEvent<HTMLFormElement>,
-      );
+      submitEdit();
     }
   };
 
@@ -103,9 +101,7 @@ export const TodoItem: React.FC<Props> = ({
     }
 
     if (e.key === 'Enter') {
-      submitEdit(
-        new Event('submit') as unknown as React.FormEvent<HTMLFormElement>,
-      );
+      submitEdit();
     }
   };
 
